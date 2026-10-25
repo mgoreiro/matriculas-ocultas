@@ -44,6 +44,7 @@
   <h1>Matrículas ocultas</h1>
   <p class="sub">Todo se procesa en tu navegador: la foto no se envía a ningún servidor.</p>
 
+  <div id="warn" style="display:none;background:#d1342f;color:#fff;border-radius:8px;padding:10px 14px;margin-bottom:12px"></div>
   <div id="drop"><p><b>Arrastra una foto aquí</b></p><p class="hint">o</p><button class="primary" id="pick">Seleccionar archivo</button>
     <input type="file" id="file" accept="image/*" hidden></div>
 
@@ -77,6 +78,15 @@
     <div id="list"></div>
   </section>
 </main>
+<script>
+  // Evita que el navegador abra la foto si la app no cargó, y explica por qué.
+  addEventListener('dragover', e => e.preventDefault());
+  addEventListener('drop', e => e.preventDefault());
+  function warn(t) { const w = document.getElementById('warn'); w.textContent = t; w.style.display = 'block'; }
+  if (location.protocol === 'file:') warn('Abre la app con el servidor local (./serve.py → http://localhost:8765); desde file:// el navegador bloquea los módulos y el modelo.');
+  setTimeout(() => { if (!window.__appReady) warn('La app no ha cargado. Ejecuta ./serve.py y abre http://localhost:8765 (revisa la consola del navegador).'); }, 2500);
+  addEventListener('error', e => warn('Error: ' + e.message));
+</script>
 <script src="vendor/ort.wasm.min.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>

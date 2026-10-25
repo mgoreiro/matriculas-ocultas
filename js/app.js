@@ -12,7 +12,10 @@ const setStatus = t => { $('status').textContent = t; };
 
 // ---------- carga ----------
 async function loadFile(file) {
-  if (!file || !file.type.startsWith('image/')) { setStatus('Eso no parece una imagen.'); return; }
+  try { await loadFile0(file); } catch (e) { console.error(e); window.warn?.('No se pudo procesar la imagen: ' + e.message); $('drop').style.display = ''; $('work').style.display = 'none'; }
+}
+async function loadFile0(file) {
+  if (!file || !file.type.startsWith('image/')) { window.warn?.('Eso no parece una imagen (formatos: JPG, PNG, WebP…).'); return; }
   name = file.name.replace(/\.[^.]+$/, ''); origType = file.type;
   const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
   W = src.width = out.width = bmp.width; H = src.height = out.height = bmp.height;
@@ -157,4 +160,5 @@ for (const id of ['mode', 'pad', 'feather', 'strength', 'thr']) $(id).oninput = 
   $('padv').textContent = $('pad').value + '%'; $('featherv').textContent = $('feather').value + 'px'; $('thrv').textContent = $('thr').value;
   $('strl').hidden = !['blur','pixel'].includes($('mode').value); refresh();
 };
+window.__appReady = true;
 window.__test = { loadFile, get boxes() { return boxes; }, render }; // gancho para pruebas

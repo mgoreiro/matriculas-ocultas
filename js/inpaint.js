@@ -241,7 +241,7 @@ export function hideBox(ctx, W, H, box, { mode, pad, feather, strength }) {
     const px = [];
     for (let i = 0; i < w * h; i++) if (M[i]) px.push([orig[i * 3] * 0.3 + orig[i * 3 + 1] * 0.59 + orig[i * 3 + 2] * 0.11, i]);
     px.sort((a, b) => b[0] - a[0]);
-    const top = px.slice(0, Math.max(1, px.length // 5)); let r = 0, g = 0, b = 0;
+    const top = px.slice(0, Math.max(1, Math.floor(px.length / 5))); let r = 0, g = 0, b = 0;
     for (const [, i] of top) { r += orig[i * 3]; g += orig[i * 3 + 1]; b += orig[i * 3 + 2]; }
     const c = [r, g, b].map(v => Math.min(255, v / top.length * 1.12));
     fill = new Float32Array(w * h * 3);
