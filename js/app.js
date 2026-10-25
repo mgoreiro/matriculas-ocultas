@@ -72,7 +72,7 @@ function drawOverlay() {
     if (!b.poly || !b.on || (!b.manual && b.score < +$('thr').value)) continue;
     const p = document.createElementNS(ns, 'polygon');
     p.setAttribute('points', b.poly.map(q => q.join(',')).join(' '));
-    p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#ff2d95'); p.setAttribute('stroke-width', Math.max(1, W / 700));
+    p.setAttribute('fill', 'rgba(255,45,149,.18)'); p.setAttribute('stroke', '#ff2d95'); p.setAttribute('stroke-width', Math.max(1, W / 900));
     svg.append(p);
   }
   ov.append(svg);
