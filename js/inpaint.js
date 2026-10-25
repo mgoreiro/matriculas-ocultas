@@ -153,6 +153,19 @@ function exemplarFill(ctx, W, H, U, bb, ring, rx0, ry0, w, h, orig) {
   return fill;
 }
 
+// Desviación típica del grano de la foto, medida en los píxeles conocidos.
+function grainSigma(orig, known, w, h) {
+  let acc = 0, cnt = 0;
+  const l = j => orig[j * 3] * 0.3 + orig[j * 3 + 1] * 0.59 + orig[j * 3 + 2] * 0.11;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x;
+    if (!(known[i] && known[i - 1] && known[i + 1] && known[i - w] && known[i + w])) continue;
+    const e = l(i) - (l(i - 1) + l(i + 1) + l(i - w) + l(i + w)) / 4;
+    acc += e * e; cnt++;
+  }
+  return Math.min(5, Math.sqrt(acc / Math.max(cnt, 1) / 1.25)) * 0.35;
+}
+
 function boxBlur1(a, w, h, r) { // desenfoque de caja 1 canal
   const t = new Float32Array(a.length), o = new Float32Array(a.length), d = 2 * r + 1;
   for (let y = 0; y < h; y++) { let s = 0; for (let k = -r; k <= r; k++) s += a[y * w + Math.min(Math.max(k, 0), w - 1)];
@@ -183,7 +196,7 @@ function grow(poly, padPct, minPx) { // aleja los vértices del centro del recua
 }
 
 // box: {x,y,w,h, poly?} en px de imagen (poly = silueta ajustada de la matrícula).
-// mode: 'fill' (clonado de parche cercano) | 'smooth' (difusión) | 'white' | 'blur' | 'pixel'.
+// mode: 'fill' (clonado de parche cercano) | 'smooth' (difusión) | 'color' (plano, color de la carrocería) | 'white' | 'blur' | 'pixel'.
 // pad: % de ampliación; feather: px de difuminado del borde.
 export function hideBox(ctx, W, H, box, { mode, pad, feather, strength }) {
   const base = box.poly || [[box.x, box.y], [box.x + box.w, box.y], [box.x + box.w, box.y + box.h], [box.x, box.y + box.h]];
@@ -220,21 +233,29 @@ export function hideBox(ctx, W, H, box, { mode, pad, feather, strength }) {
     const known = new Uint8Array(w * h);
     for (let i = 0; i < w * h; i++) known[i] = U[i] ? 0 : 1;
     fill = Float32Array.from(orig);
-    let acc = 0, cnt = 0;
-    const l = j => orig[j * 3] * 0.3 + orig[j * 3 + 1] * 0.59 + orig[j * 3 + 2] * 0.11;
-    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
-      const i = y * w + x;
-      if (!(known[i] && known[i - 1] && known[i + 1] && known[i - w] && known[i + w])) continue;
-      const e = l(i) - (l(i - 1) + l(i + 1) + l(i - w) + l(i + w)) / 4;
-      acc += e * e; cnt++;
-    }
-    const sigma = Math.min(5, Math.sqrt(acc / Math.max(cnt, 1) / 1.25)) * 0.35;
+    const sigma = grainSigma(orig, known, w, h);
     diffuse(fill, known, w, h);
     const rnd = mulberry(1234 + rx0 * 31 + ry0);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       if (known[y * w + x]) continue;
       const i = y * w + x, gl = gauss(rnd) * sigma;
       for (let ch = 0; ch < 3; ch++) fill[i * 3 + ch] += gl * 0.8 + gauss(rnd) * sigma * 0.2;
+    }
+  } else if (mode === 'color') {
+    // color plano de la carrocería: tono central de un anillo ancho alrededor de la matrícula, con el grano de la foto
+    const Ud = dilate(U, w, h, Math.max(4, Math.round(Math.min(ux1 - ux0, uy1 - uy0) * 0.15))), ring = [];
+    for (let i = 0; i < w * h; i++) if (Ud[i] && !U[i]) ring.push([orig[i * 3] * 0.3 + orig[i * 3 + 1] * 0.59 + orig[i * 3 + 2] * 0.11, i]);
+    if (!ring.length) return;
+    ring.sort((a, b) => a[0] - b[0]);
+    const mid = ring.slice(Math.floor(ring.length * 0.25), Math.ceil(ring.length * 0.75)); let r = 0, g = 0, b = 0;
+    for (const [, i] of mid) { r += orig[i * 3]; g += orig[i * 3 + 1]; b += orig[i * 3 + 2]; }
+    const known = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) known[i] = U[i] ? 0 : 1;
+    const sigma = grainSigma(orig, known, w, h), rnd = mulberry(99 + rx0 * 17 + ry0);
+    fill = new Float32Array(w * h * 3);
+    for (let i = 0; i < w * h; i++) {
+      const gl = U[i] ? gauss(rnd) * sigma : 0;
+      fill[i * 3] = r / mid.length + gl; fill[i * 3 + 1] = g / mid.length + gl; fill[i * 3 + 2] = b / mid.length + gl;
     }
   } else if (mode === 'white') {
     // blanco "de matrícula": media de la quinta parte más clara de los píxeles de la silueta

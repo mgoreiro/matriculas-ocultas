@@ -21,6 +21,7 @@ Abre <http://localhost:8765>, arrastra una foto (o pulsa «Seleccionar archivo»
 - **Modos de ocultación**
   - *Relleno con carrocería cercana* (por defecto): busca en la propia imagen un parche liso cuyo contorno encaje con el de la matrícula, lo clona y corrige el color por difusión (clonado «seamless»). Si no hay un parche fiable cae a…
   - *Relleno suave (difusión)*: interpola los colores del borde (pirámide + relajación de Laplace) y añade grano acorde al de la foto.
+  - *Pintar del color de la carrocería*: color plano (tono central del entorno) con el grano de la foto.
   - *Pintar de blanco*: rellena solo la matrícula con su propio tono claro.
   - *Desenfoque fuerte* y *Pixelado* (con intensidad ajustable).
   - *Margen* amplía la caja un % y *Difuminado* suaviza el borde de la zona sustituida.
