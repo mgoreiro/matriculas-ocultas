@@ -21,6 +21,7 @@ Abre <http://localhost:8765>, arrastra una foto (o pulsa «Seleccionar archivo»
 - **Modos de ocultación**
   - *Relleno con carrocería cercana* (por defecto): busca en la propia imagen un parche liso cuyo contorno encaje con el de la matrícula, lo clona y corrige el color por difusión (clonado «seamless»). Si no hay un parche fiable cae a…
   - *Relleno suave (difusión)*: interpola los colores del borde (pirámide + relajación de Laplace) y añade grano acorde al de la foto.
+  - *Inteligente (IA, LaMa)*: el mejor resultado. Rellena la silueta con un modelo de inpainting neuronal (LaMa, Apache-2.0) que reconstruye pliegues, reflejos y textura. Requiere descargar el modelo una vez (`./descargar-lama.sh`, 198 MB, no está en el repo). Tarda unos 15 s por matrícula en un solo hilo de WASM y bloquea la pestaña mientras trabaja.
   - *Pintar del color de la carrocería*: color plano (tono central del entorno) con el grano de la foto.
   - *Pintar de blanco*: rellena solo la matrícula con su propio tono claro.
   - *Desenfoque fuerte* y *Pixelado* (con intensidad ajustable).
@@ -39,7 +40,9 @@ Página estática + `onnxruntime-web` (WASM, CPU) + YOLOv9 en ONNX: sin backend 
 | `models/yolo-v9-s-608-license-plates-end2end.onnx` | idem | 28,6 MB |
 | `vendor/ort.wasm.min.js`, `ort-wasm-simd-threaded.{mjs,wasm}` | paquete npm `onnxruntime-web@1.22.0` (MIT) | 11,6 MB |
 
-Para volver a descargarlos, usa las URL de arriba / `npm pack onnxruntime-web@1.22.0` y copia esos tres ficheros de `package/dist/` a `vendor/`.
+Opcional: `models/lama_fp32.onnx` (198 MB) de [Carve/LaMa-ONNX](https://huggingface.co/Carve/LaMa-ONNX), con `./descargar-lama.sh`.
+
+Para volver a descargar los demás, usa las URL de arriba / `npm pack onnxruntime-web@1.22.0` y copia esos tres ficheros de `package/dist/` a `vendor/`.
 Revisa las licencias de los modelos en su repositorio si vas a redistribuirlos.
 
 ## Límites conocidos

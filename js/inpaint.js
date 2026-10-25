@@ -154,7 +154,7 @@ function exemplarFill(ctx, W, H, U, bb, ring, rx0, ry0, w, h, orig) {
 }
 
 // Desviación típica del grano de la foto, medida en los píxeles conocidos.
-function grainSigma(orig, known, w, h) {
+export function grainSigma(orig, known, w, h) {
   let acc = 0, cnt = 0;
   const l = j => orig[j * 3] * 0.3 + orig[j * 3 + 1] * 0.59 + orig[j * 3 + 2] * 0.11;
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
@@ -166,7 +166,7 @@ function grainSigma(orig, known, w, h) {
   return Math.min(5, Math.sqrt(acc / Math.max(cnt, 1) / 1.25)) * 0.35;
 }
 
-function boxBlur1(a, w, h, r) { // desenfoque de caja 1 canal
+export function boxBlur1(a, w, h, r) { // desenfoque de caja 1 canal
   const t = new Float32Array(a.length), o = new Float32Array(a.length), d = 2 * r + 1;
   for (let y = 0; y < h; y++) { let s = 0; for (let k = -r; k <= r; k++) s += a[y * w + Math.min(Math.max(k, 0), w - 1)];
     for (let x = 0; x < w; x++) { t[y * w + x] = s / d; s += a[y * w + Math.min(x + r + 1, w - 1)] - a[y * w + Math.max(x - r, 0)]; } }
@@ -174,13 +174,13 @@ function boxBlur1(a, w, h, r) { // desenfoque de caja 1 canal
     for (let y = 0; y < h; y++) { o[y * w + x] = s / d; s += t[Math.min(y + r + 1, h - 1) * w + x] - t[Math.max(y - r, 0) * w + x]; } }
   return o;
 }
-function dilate(m, w, h, r) { // máximo en ventana cuadrada (r px)
+export function dilate(m, w, h, r) { // máximo en ventana cuadrada (r px)
   const t = new Float32Array(m.length), o = new Float32Array(m.length);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let v = 0; for (let k = Math.max(0, x - r); k <= Math.min(w - 1, x + r); k++) if (m[y * w + k]) { v = 1; break; } t[y * w + x] = v; }
   for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) { let v = 0; for (let k = Math.max(0, y - r); k <= Math.min(h - 1, y + r); k++) if (t[k * w + x]) { v = 1; break; } o[y * w + x] = v; }
   return o;
 }
-function inPoly(poly, x, y) {
+export function inPoly(poly, x, y) {
   let c = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const a = poly[i], b = poly[j];
@@ -188,7 +188,7 @@ function inPoly(poly, x, y) {
   }
   return c;
 }
-function grow(poly, px) { // desplaza cada lado px píxeles hacia fuera (polígono convexo) y recalcula los vértices
+export function grow(poly, px) { // desplaza cada lado px píxeles hacia fuera (polígono convexo) y recalcula los vértices
   if (!poly.length) return poly;
   let sa = 0;
   for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; sa += a[0] * b[1] - b[0] * a[1]; }

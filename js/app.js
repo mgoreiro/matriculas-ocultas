@@ -1,6 +1,7 @@
 import { detect, MODELS } from './detect.js';
 import { hideBox } from './inpaint.js';
 import { refinePlate } from './refine.js';
+import { lamaHide } from './lama.js';
 
 const $ = id => document.getElementById(id);
 const src = document.createElement('canvas'), out = document.createElement('canvas');
@@ -37,7 +38,7 @@ async function runDetect() {
     });
     boxes = manual.concat(dets.map(d => ({ ...d, id: nextId++, on: true, manual: false })));
     fitAll();
-    setStatus(`${dets.length} matrícula(s) detectada(s).`);
+    note = `${dets.length} matrícula(s) detectada(s).`; setStatus(note);
   } catch (e) { console.error(e); setStatus('Error al detectar: ' + e.message); }
   $('redetect').disabled = false;
   refresh();
@@ -49,12 +50,28 @@ function fitAll() { boxes.forEach(fitBox); }
 
 // ---------- render ----------
 const visible = b => b.on && (b.manual || b.score >= +$('thr').value);
+let rendering = false, pending = false, note = '';
 function refresh() { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(render); }
-function render() {
-  octx.drawImage(src, 0, 0);
-  const o = { mode: $('mode').value, pad: +$('pad').value, feather: +$('feather').value, strength: +$('strength').value };
-  for (const b of boxes) if (visible(b)) hideBox(octx, W, H, b, o);
-  drawOverlay(); drawList();
+async function render() {
+  if (rendering) { pending = true; return; }
+  rendering = true;
+  try {
+    do {
+      pending = false;
+      octx.drawImage(src, 0, 0);
+      const o = { mode: $('mode').value, pad: +$('pad').value, feather: +$('feather').value, strength: +$('strength').value };
+      for (const b of boxes) {
+        if (!visible(b)) continue;
+        if (o.mode === 'lama') {
+          setStatus('Aplicando IA (LaMa)… la primera vez carga el modelo de 198 MB.');
+          try { await lamaHide(octx, W, H, b, o); } catch (e) { console.error(e); setStatus(e.message); pending = false; break; }
+          setStatus(note);
+        } else hideBox(octx, W, H, b, o);
+        if (pending) break;
+      }
+      drawOverlay(); drawList();
+    } while (pending);
+  } finally { rendering = false; }
 }
 
 function boxEl(b, cls) {
