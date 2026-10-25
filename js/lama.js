@@ -1,23 +1,24 @@
 // Ocultación con LaMa (inpainting neuronal, ONNX 512x512, Apache-2.0) ejecutado en el navegador.
 // Se recorta una ventana cuadrada alrededor de la matrícula, se rellena la silueta con LaMa y se pega solo esa zona.
 import { grow, inPoly, dilate, boxBlur1 } from './inpaint.js';
-const ort = window.ort;
 export const LAMA_URL = 'models/lama_fp32.onnx';
-let session = null;
+let worker = null, nextId = 1;
+const waiting = new Map();
 
-export function lamaSession() {
-  session ||= ort.InferenceSession.create(LAMA_URL, { executionProviders: ['wasm'] }).catch(e => {
-    session = null;
-    throw new Error('No se pudo cargar models/lama_fp32.onnx (¿ejecutaste ./descargar-lama.sh?): ' + e.message);
-  });
-  return session;
+// Llamada al worker (inferencia fuera del hilo principal)
+function call(msg, transfer = []) {
+  if (!worker) {
+    worker = new Worker(new URL('./lama-worker.js', import.meta.url));
+    worker.onmessage = ({ data }) => { const w = waiting.get(data.id); waiting.delete(data.id); data.ok ? w.resolve(data.out) : w.reject(new Error('No se pudo ejecutar LaMa (¿ejecutaste ./descargar-lama.sh?): ' + data.error)); };
+    worker.onerror = e => { for (const w of waiting.values()) w.reject(new Error('Error en el worker: ' + e.message)); waiting.clear(); worker = null; };
+  }
+  return new Promise((resolve, reject) => { const id = nextId++; waiting.set(id, { resolve, reject }); worker.postMessage({ ...msg, id }, transfer); });
 }
 
 const S = 512;
 const win = document.createElement('canvas');
 
 export async function lamaHide(ctx, W, H, box, { pad, feather }) {
-  const sess = await lamaSession();
   const base = box.poly || [[box.x, box.y], [box.x + box.w, box.y], [box.x + box.w, box.y + box.h], [box.x, box.y + box.h]];
   const poly = grow(base, pad);
   let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
@@ -39,7 +40,8 @@ export async function lamaHide(ctx, W, H, box, { pad, feather }) {
   for (let i = 0; i < S * S; i++) if (mask[i]) { px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = 0; }
   const img = new Float32Array(3 * S * S);
   for (let i = 0; i < S * S; i++) { img[i] = px[i * 4] / 255; img[S * S + i] = px[i * 4 + 1] / 255; img[2 * S * S + i] = px[i * 4 + 2] / 255; }
-  const out = (await sess.run({ image: new ort.Tensor('float32', img, [1, 3, S, S]), mask: new ort.Tensor('float32', mask, [1, 1, S, S]) })).output.data;
+  const maskF = Float32Array.from(mask);
+  const out = await call({ type: 'run', image: img, mask: maskF }, [img.buffer, maskF.buffer]);
   let mx = 0; for (let i = 0; i < out.length; i += 97) mx = Math.max(mx, out[i]);
   const scale = mx > 2 ? 1 : 255;
   const rc = document.createElement('canvas'); rc.width = rc.height = S;

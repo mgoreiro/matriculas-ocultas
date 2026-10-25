@@ -60,10 +60,11 @@ async function render() {
       pending = false;
       octx.drawImage(src, 0, 0);
       const o = { mode: $('mode').value, pad: +$('pad').value, feather: +$('feather').value, strength: +$('strength').value };
-      for (const b of boxes) {
-        if (!visible(b)) continue;
+      const todo = boxes.filter(visible); let n = 0;
+      for (const b of todo) {
+        n++;
         if (o.mode === 'lama') {
-          setStatus('Aplicando IA (LaMa)… la primera vez carga el modelo de 198 MB.');
+          setStatus(`Aplicando IA (LaMa) ${n}/${todo.length}… la primera vez carga el modelo de 198 MB; la página sigue usable.`);
           try { await lamaHide(octx, W, H, b, o); } catch (e) { console.error(e); setStatus(e.message); pending = false; break; }
           setStatus(note);
         } else hideBox(octx, W, H, b, o);
