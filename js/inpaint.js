@@ -135,7 +135,7 @@ function exemplarFill(ctx, W, H, U, bb, ring, rx0, ry0, w, h, orig) {
   search(best.dx, best.dy, step, Math.max(1, Math.round(step / 3)));
   const { dx, dy } = best;
   cost(dx, dy);
-  if (lastRg > 3.5) return null; // demasiadas aristas (pliegues, rótulos): mejor difusión suave
+  if (lastRg > 2.5) return null; // demasiadas aristas (pliegues, rótulos): mejor difusión suave
   const fill = Float32Array.from(orig), D = new Float32Array(w * h * 3), known = new Uint8Array(w * h);
   for (let k = 0; k < ring.length; k += 2) {
     const x = ring[k], y = ring[k + 1], i = (y - ry0) * w + (x - rx0), b = at(x + dx, y + dy);
@@ -188,20 +188,31 @@ function inPoly(poly, x, y) {
   }
   return c;
 }
-function grow(poly, padPct, minPx) { // aleja los vértices del centro del recuadro
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const [x, y] of poly) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  return poly.map(([x, y]) => { const dx = x - cx, dy = y - cy, l = Math.hypot(dx, dy) || 1, n = l * (1 + padPct / 100) + minPx; return [cx + dx / l * n, cy + dy / l * n]; });
+function grow(poly, px) { // desplaza cada lado px píxeles hacia fuera (polígono convexo) y recalcula los vértices
+  if (!poly.length) return poly;
+  let sa = 0;
+  for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; sa += a[0] * b[1] - b[0] * a[1]; }
+  const sg = sa > 0 ? 1 : -1, n = poly.length, lines = [];
+  for (let i = 0; i < n; i++) {
+    const a = poly[i], b = poly[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    const nx = dy / l * sg, ny = -dx / l * sg; // normal hacia fuera
+    lines.push([[a[0] + nx * px, a[1] + ny * px], [b[0] + nx * px, b[1] + ny * px]]);
+  }
+  return poly.map((_, i) => {
+    const [a, b] = lines[(i - 1 + n) % n], [c, d] = lines[i];
+    const r = [b[0] - a[0], b[1] - a[1]], q = [d[0] - c[0], d[1] - c[1]], den = r[0] * q[1] - r[1] * q[0];
+    if (Math.abs(den) < 1e-9) return c;
+    const t = ((c[0] - a[0]) * q[1] - (c[1] - a[1]) * q[0]) / den;
+    return [a[0] + t * r[0], a[1] + t * r[1]];
+  });
 }
 
 // box: {x,y,w,h, poly?} en px de imagen (poly = silueta ajustada de la matrícula).
 // mode: 'fill' (clonado de parche cercano) | 'smooth' (difusión) | 'color' (plano, color de la carrocería) | 'white' | 'blur' | 'pixel'.
-// pad: % de ampliación; feather: px de difuminado del borde.
+// pad: margen en px alrededor de la silueta; feather: px de difuminado del borde.
 export function hideBox(ctx, W, H, box, { mode, pad, feather, strength }) {
   const base = box.poly || [[box.x, box.y], [box.x + box.w, box.y], [box.x + box.w, box.y + box.h], [box.x, box.y + box.h]];
-  let ys = base.map(q => q[1]), hh = Math.max(...ys) - Math.min(...ys);
-  const poly = grow(base, pad, Math.max(2, Math.min(6, hh * 0.1)));
+    const poly = grow(base, pad);
   let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
   for (const [x, y] of poly) { bx0 = Math.min(bx0, x); by0 = Math.min(by0, y); bx1 = Math.max(bx1, x); by1 = Math.max(by1, y); }
   const f = Math.max(0, Math.round(feather)), r1 = Math.ceil(f / 2);

@@ -17,14 +17,14 @@ Abre <http://localhost:8765>, arrastra una foto (o pulsa «Seleccionar archivo»
 
 - **Detección automática** con el modelo elegido (*Rápido* 8 MB / *Preciso* 29 MB). «Buscar también por zonas» repite la detección sobre mosaicos ampliados para encontrar matrículas lejanas. El deslizador *Confianza mín.* filtra las detecciones dudosas.
 - **Ajuste manual**: clic en una caja para quitarla/ponerla (falsos positivos), o arrastra sobre la foto para dibujar una caja a mano. El panel inferior muestra cada matrícula con su recorte antes/después y botones para quitar o eliminar.
-- **Ajuste a la silueta** (activado por defecto): la caja del detector se recorta a la forma real de la matrícula (zona clara/azul frente a la carrocería, envolvente convexa), de modo que solo se oculta la matrícula y no un rectángulo mayor. Se ve como contorno rosa; sin contraste fiable (matrícula blanca sobre coche blanco) se usa la caja.
+- **Ajuste exacto a la matrícula** (activado por defecto): del recuadro del detector se pasa a un cuadrilátero de 4 esquinas (admite perspectiva) que sigue el borde real de la matrícula: se segmenta la zona clara/azul frente a la carrocería, se toma su envolvente convexa y se reduce a 4 lados. Solo se modifican los píxeles de ese cuadrilátero más un margen en px (por defecto 3) y un difuminado de borde de 2 px. Se ve como contorno rosa. Sin contraste fiable (matrícula blanca sobre coche blanco) se usa el recuadro del detector.
 - **Modos de ocultación**
   - *Relleno con carrocería cercana* (por defecto): busca en la propia imagen un parche liso cuyo contorno encaje con el de la matrícula, lo clona y corrige el color por difusión (clonado «seamless»). Si no hay un parche fiable cae a…
   - *Relleno suave (difusión)*: interpola los colores del borde (pirámide + relajación de Laplace) y añade grano acorde al de la foto.
   - *Pintar del color de la carrocería*: color plano (tono central del entorno) con el grano de la foto.
   - *Pintar de blanco*: rellena solo la matrícula con su propio tono claro.
   - *Desenfoque fuerte* y *Pixelado* (con intensidad ajustable).
-  - *Margen* amplía la caja un % y *Difuminado* suaviza el borde de la zona sustituida.
+  - *Margen* amplía el cuadrilátero unos px y *Difuminado* suaviza el borde de la zona sustituida.
 - **Descarga** en JPG (calidad ajustable) o PNG, a la resolución original. Se respeta la orientación EXIF; el JPG resultante no conserva metadatos EXIF (ubicación, etc.).
 
 ## Stack y por qué

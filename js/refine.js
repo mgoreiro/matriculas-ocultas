@@ -28,11 +28,38 @@ function simplify(poly, eps) {
   return a.slice(0, -1).concat(b.slice(0, -1));
 }
 
+
+// Reduce un polígono convexo a un cuadrilátero: colapsa repetidamente la arista que, al prolongar sus vecinas,
+// añade menos área. El resultado envuelve la silueta de forma ajustada (admite perspectiva).
+function toQuad(poly) {
+  let p = poly.map(q => q.slice());
+  const inter = (a, b, c, d) => { // recta ab con recta cd -> {pt,t,u}
+    const r = [b[0] - a[0], b[1] - a[1]], q = [d[0] - c[0], d[1] - c[1]], den = r[0] * q[1] - r[1] * q[0];
+    if (Math.abs(den) < 1e-9) return null;
+    const t = ((c[0] - a[0]) * q[1] - (c[1] - a[1]) * q[0]) / den, u = ((c[0] - a[0]) * r[1] - (c[1] - a[1]) * r[0]) / den;
+    return { pt: [a[0] + t * r[0], a[1] + t * r[1]], t, u };
+  };
+  while (p.length > 4) {
+    const n = p.length; let best = null;
+    for (let i = 0; i < n; i++) {
+      const a = p[(i - 1 + n) % n], b = p[i], c = p[(i + 1) % n], d = p[(i + 2) % n];
+      const x = inter(a, b, d, c); // a->b prolongada con d->c prolongada
+      let cost, pt = null;
+      if (x && x.t > 1 && x.u > 1) { pt = x.pt; cost = area([b, pt, c]); }
+      else cost = 1e12 + area([a, b, c]);
+      if (!best || cost < best.cost) best = { cost, i, pt };
+    }
+    const { i, pt } = best, c = (i + 1) % n;
+    if (pt) { p[i] = pt; p.splice(c, 1); } else p.splice(i, 1);
+  }
+  return p;
+}
+
 export function refinePlate(src, W, H, b) {
   const mx = Math.max(4, b.w * 0.2), my = Math.max(4, b.h * 0.2);
   const x0 = Math.max(0, Math.floor(b.x - mx)), y0 = Math.max(0, Math.floor(b.y - my));
   const x1 = Math.min(W, Math.ceil(b.x + b.w + mx)), y1 = Math.min(H, Math.ceil(b.y + b.h + my));
-  const rw = x1 - x0, rh = y1 - y0, s = Math.min(1, 320 / rw);
+  const rw = x1 - x0, rh = y1 - y0, s = Math.min(1, 640 / rw);
   const w = Math.max(8, Math.round(rw * s)), h = Math.max(8, Math.round(rh * s));
   cv.width = w; cv.height = h;
   const c = cv.getContext('2d', { willReadFrequently: true });
@@ -86,5 +113,7 @@ export function refinePlate(src, W, H, b) {
   const hull = hullOf(pts);
   const ratio = area(hull) / ((bx1 - bx0) * (by1 - by0));
   if (hull.length < 3 || ratio < 0.35 || ratio > 1.3) return null;
-  return simplify(hull, 0.8).map(([x, y]) => [x0 + x / s, y0 + y / s]);
+  const quad = toQuad(simplify(hull, 0.5));
+  if (quad.length !== 4) return null;
+  return quad.map(([x, y]) => [x0 + x / s, y0 + y / s]);
 }

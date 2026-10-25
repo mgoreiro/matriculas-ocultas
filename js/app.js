@@ -78,7 +78,7 @@ function drawOverlay() {
   ov.append(svg);
   for (const b of boxes) {
     if (!b.manual && b.score < +$('thr').value) continue;
-    const e = boxEl(b, b.on ? '' : 'off'); e.dataset.id = b.id; ov.append(e);
+    const e = boxEl(b, !b.on ? 'off' : b.poly ? 'fit' : ''); e.dataset.id = b.id; ov.append(e);
   }
 }
 function crop(canvas, b, target) {
@@ -157,7 +157,7 @@ $('redetect').onclick = runDetect;
 $('fit').onchange = () => { fitAll(); refresh(); };
 $('model').onchange = runDetect;
 for (const id of ['mode', 'pad', 'feather', 'strength', 'thr']) $(id).oninput = () => {
-  $('padv').textContent = $('pad').value + '%'; $('featherv').textContent = $('feather').value + 'px'; $('thrv').textContent = $('thr').value;
+  $('padv').textContent = $('pad').value + 'px'; $('featherv').textContent = $('feather').value + 'px'; $('thrv').textContent = $('thr').value;
   $('strl').hidden = !['blur','pixel'].includes($('mode').value); refresh();
 };
 window.__appReady = true;
