@@ -1,7 +1,7 @@
 import { detect, MODELS } from './detect.js';
 import { hideBox } from './inpaint.js';
 import { refinePlate } from './refine.js';
-import { lamaHide } from './lama.js';
+import { lamaHide, lamaInstalled } from './lama.js';
 
 const $ = id => document.getElementById(id);
 const src = document.createElement('canvas'), out = document.createElement('canvas');
@@ -64,9 +64,9 @@ async function render() {
       for (const b of todo) {
         n++;
         if (o.mode === 'lama') {
-          setStatus(`Aplicando IA (LaMa) ${n}/${todo.length}… la primera vez carga el modelo de 198 MB; la página sigue usable.`);
-          try { await lamaHide(octx, W, H, b, o); } catch (e) { console.error(e); setStatus(e.message); pending = false; break; }
-          setStatus(note);
+          setStatus(`Aplicando IA (LaMa) ${n}/${todo.length}… la página sigue usable.`);
+          try { await lamaHide(octx, W, H, b, o, p => setStatus(`Descargando el modelo de IA (solo esta vez, se guarda en el navegador): ${Math.round(p.progress * 100)} % de ${Math.round(p.total / 1e6)} MB`)); } catch (e) { console.error(e); setStatus(e.message); pending = false; break; }
+          setStatus(note); updateLamaLabel();
         } else hideBox(octx, W, H, b, o);
         if (pending) break;
       }
@@ -178,5 +178,10 @@ for (const id of ['mode', 'pad', 'feather', 'strength', 'thr']) $(id).oninput = 
   $('padv').textContent = $('pad').value + 'px'; $('featherv').textContent = $('feather').value + 'px'; $('thrv').textContent = $('thr').value;
   $('strl').hidden = !['blur','pixel'].includes($('mode').value); refresh();
 };
+async function updateLamaLabel() {
+  const o = [...$('mode').options].find(x => x.value === 'lama');
+  o.textContent = (await lamaInstalled()) ? 'Inteligente (IA, LaMa · instalado)' : 'Inteligente (IA, LaMa · descarga única de 198 MB)';
+}
+updateLamaLabel();
 window.__appReady = true;
 window.__test = { loadFile, get boxes() { return boxes; }, render }; // gancho para pruebas

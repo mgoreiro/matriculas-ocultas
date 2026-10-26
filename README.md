@@ -21,7 +21,7 @@ Abre <http://localhost:8765>, arrastra una foto (o pulsa «Seleccionar archivo»
 - **Modos de ocultación**
   - *Relleno con carrocería cercana* (por defecto): busca en la propia imagen un parche liso cuyo contorno encaje con el de la matrícula, lo clona y corrige el color por difusión (clonado «seamless»). Si no hay un parche fiable cae a…
   - *Relleno suave (difusión)*: interpola los colores del borde (pirámide + relajación de Laplace) y añade grano acorde al de la foto.
-  - *Inteligente (IA, LaMa)*: el mejor resultado. Rellena la silueta con un modelo de inpainting neuronal (LaMa, Apache-2.0) que reconstruye pliegues, reflejos y textura. Requiere descargar el modelo una vez (`./descargar-lama.sh`, 198 MB, no está en el repo). Tarda unos 15 s por matrícula (un hilo de WASM); se ejecuta en un Web Worker (`js/lama-worker.js`), así que la página sigue respondiendo mientras trabaja.
+  - *Inteligente (IA, LaMa)*: el mejor resultado. Rellena la silueta con un modelo de inpainting neuronal (LaMa, Apache-2.0) que reconstruye pliegues, reflejos y textura. Requiere descargar el modelo una vez (198 MB, no está en el repo): en local con `./descargar-lama.sh`; en un servidor lo descarga la propia app la primera vez y **lo guarda en el navegador (Cache Storage, con petición de almacenamiento persistente)**, de modo que cada visitante lo baja una sola vez y las siguientes no usan red; el desplegable indica «instalado». Tarda unos 15 s por matrícula (un hilo de WASM); se ejecuta en un Web Worker (`js/lama-worker.js`), así que la página sigue respondiendo mientras trabaja.
   - *Pintar del color de la carrocería*: color plano (tono central del entorno) con el grano de la foto.
   - *Pintar de blanco*: rellena solo la matrícula con su propio tono claro.
   - *Desenfoque fuerte* y *Pixelado* (con intensidad ajustable).
@@ -61,8 +61,8 @@ Revisa las licencias de los modelos en su repositorio si vas a redistribuirlos.
 
 La app es 100 % estática, así que basta con servir la carpeta; no necesita Node, Python ni Docker en el servidor.
 
-1. En el servidor, una vez: `sudo mkdir -p /var/www/matriculas-ocultas && sudo chown "$USER" /var/www/matriculas-ocultas`.
+1. Una vez: `./deploy/preparar-servidor.sh usuario@midominio.com` (crea la carpeta y copia el fragmento de nginx; pide tu contraseña).
 2. Desde tu equipo: `./deploy/deploy.sh usuario@midominio.com --lama` (sube solo lo que usa el navegador, ~20 MB; con `--lama` el servidor descarga él mismo el modelo de IA de 198 MB).
-3. Copia `deploy/nginx-matriculas.conf` a `/etc/nginx/snippets/matriculas.conf`, añade `include snippets/matriculas.conf;` dentro del `server { }` con TLS y recarga nginx. Queda en `https://midominio.com/matriculas/`.
+3. Añade `include snippets/matriculas.conf;` dentro del `server { }` con TLS y recarga nginx (`sudo nginx -t && sudo systemctl reload nginx`). Queda en `https://midominio.com/matriculas/`.
 
 El fragmento sirve `.wasm`/`.mjs` con el tipo correcto, activa gzip y caché, y añade una CSP que impide a la página conectar con otros orígenes. `./serve.py` envía esa misma CSP, de modo que lo que pruebas en local es lo que se publica. Si no quieres que sea pública, descomenta el bloque `auth_basic` del fragmento.

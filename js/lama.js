@@ -2,14 +2,20 @@
 // Se recorta una ventana cuadrada alrededor de la matrícula, se rellena la silueta con LaMa y se pega solo esa zona.
 import { grow, inPoly, dilate, boxBlur1 } from './inpaint.js';
 export const LAMA_URL = 'models/lama_fp32.onnx';
-let worker = null, nextId = 1;
+let worker = null, nextId = 1, onProgress = null;
+const CACHE = 'matriculas-modelos-v1';
+
+// ¿Ya está instalado el modelo en este navegador?
+export async function lamaInstalled() {
+  try { return !!(await (await caches.open(CACHE)).match(new URL('../' + LAMA_URL, import.meta.url).href)); } catch { return false; }
+}
 const waiting = new Map();
 
 // Llamada al worker (inferencia fuera del hilo principal)
 function call(msg, transfer = []) {
   if (!worker) {
     worker = new Worker(new URL('./lama-worker.js', import.meta.url));
-    worker.onmessage = ({ data }) => { const w = waiting.get(data.id); waiting.delete(data.id); data.ok ? w.resolve(data.out) : w.reject(new Error('No se pudo ejecutar LaMa (¿ejecutaste ./descargar-lama.sh?): ' + data.error)); };
+    worker.onmessage = ({ data }) => { if (data.progress !== undefined) return onProgress?.(data); const w = waiting.get(data.id); waiting.delete(data.id); data.ok ? w.resolve(data.out) : w.reject(new Error('No se pudo ejecutar LaMa (¿ejecutaste ./descargar-lama.sh?): ' + data.error)); };
     worker.onerror = e => { for (const w of waiting.values()) w.reject(new Error('Error en el worker: ' + e.message)); waiting.clear(); worker = null; };
   }
   return new Promise((resolve, reject) => { const id = nextId++; waiting.set(id, { resolve, reject }); worker.postMessage({ ...msg, id }, transfer); });
@@ -18,7 +24,9 @@ function call(msg, transfer = []) {
 const S = 512;
 const win = document.createElement('canvas');
 
-export async function lamaHide(ctx, W, H, box, { pad, feather }) {
+export async function lamaHide(ctx, W, H, box, { pad, feather }, progress) {
+  onProgress = progress || null;
+  navigator.storage?.persist?.().catch(() => {}); // pide que el navegador no borre el modelo
   const base = box.poly || [[box.x, box.y], [box.x + box.w, box.y], [box.x + box.w, box.y + box.h], [box.x, box.y + box.h]];
   const poly = grow(base, pad);
   let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
