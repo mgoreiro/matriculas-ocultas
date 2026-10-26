@@ -69,6 +69,7 @@ Modos de ocultación (desplegable *Ocultar con*):
 - Modelo: [Carve/LaMa-ONNX](https://huggingface.co/Carve/LaMa-ONNX) (`lama_fp32.onnx`, 198 MB, Apache-2.0). **No está en el repositorio** (supera el límite de GitHub).
 - En local: `./descargar-lama.sh` lo deja en `models/`.
 - En un servidor: `deploy.sh --lama` lo descarga una vez en el propio servidor. Cada visitante lo baja **una sola vez**: el navegador lo guarda en Cache Storage (con petición de almacenamiento persistente) y el desplegable pasa a «instalado»; las siguientes veces no usa red. Si el navegador limpia los datos del sitio habría que descargarlo de nuevo.
+- La primera vez que se elige el modo, la app **avisa** de la descarga (198 MB a este dispositivo) y pide confirmación; durante la descarga muestra la ventana **«Descargando IA»** con barra de progreso. Si se cancela, no se descarga nada.
 - Tarda unos 15 s por matrícula (WASM, un hilo) y se ejecuta en un **Web Worker** (`js/lama-worker.js`), así que la página sigue respondiendo.
 
 ## Cómo funciona

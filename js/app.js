@@ -1,7 +1,7 @@
 import { detect, MODELS } from './detect.js';
 import { hideBox } from './inpaint.js';
 import { refinePlate } from './refine.js';
-import { lamaHide, lamaInstalled } from './lama.js';
+import { lamaHide, lamaInstalled, lamaPreload } from './lama.js';
 
 const $ = id => document.getElementById(id);
 const src = document.createElement('canvas'), out = document.createElement('canvas');
@@ -60,6 +60,7 @@ async function render() {
       pending = false;
       octx.drawImage(src, 0, 0);
       const o = { mode: $('mode').value, pad: +$('pad').value, feather: +$('feather').value, strength: +$('strength').value };
+      if (o.mode === 'lama' && !(await lamaInstalled())) o.mode = 'fill'; // sin modelo no se descarga nada hasta que el usuario lo confirme
       const todo = boxes.filter(visible); let n = 0;
       for (const b of todo) {
         n++;
@@ -153,6 +154,33 @@ function drawList() {
   });
 })();
 
+// ---------- modelo de IA: aviso previo y ventana «Descargando IA» ----------
+const askAI = () => new Promise(res => {
+  const d = $('dlgAI'); d.returnValue = '';
+  d.addEventListener('close', () => res(d.returnValue === 'ok'), { once: true });
+  d.showModal();
+});
+async function ensureLama() { // true si el modelo está listo (instalado o recién descargado)
+  if (await lamaInstalled()) return true;
+  if (!(await askAI())) return false;
+  const d = $('dlgDownload'); $('dlErr').textContent = ''; $('dlClose').hidden = true; $('dlProg').value = 0; $('dlPct').textContent = '0 %';
+  $('dlText').textContent = 'Descargando el modelo de IA a tu dispositivo (solo esta vez). No cierres la página.';
+  d.addEventListener('cancel', e => e.preventDefault()); d.showModal();
+  try {
+    await lamaPreload(p => {
+      if (p.phase === 'init') { $('dlProg').value = 100; $('dlPct').textContent = '100 %'; $('dlText').textContent = 'Preparando la IA…'; return; }
+      const pct = Math.round(p.progress * 100);
+      $('dlProg').value = pct; $('dlPct').textContent = `${pct} % · ${Math.round(p.got / 1e6)} de ${Math.round(p.total / 1e6)} MB`;
+    });
+    d.close(); updateLamaLabel();
+    return true;
+  } catch (e) {
+    $('dlText').textContent = 'No se pudo descargar el modelo de IA.'; $('dlErr').textContent = e.message; $('dlClose').hidden = false;
+    await new Promise(r => d.addEventListener('close', r, { once: true }));
+    return false;
+  }
+}
+
 // ---------- modo dibujo en pantallas táctiles ----------
 const coarse = matchMedia('(pointer: coarse)').matches;
 function setDraw(on) {
@@ -195,7 +223,12 @@ addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));
 $('redetect').onclick = runDetect;
 $('fit').onchange = () => { fitAll(); refresh(); };
 $('model').onchange = runDetect;
-for (const id of ['mode', 'pad', 'feather', 'strength', 'thr']) $(id).oninput = () => {
+let lastMode = 'fill';
+for (const id of ['mode', 'pad', 'feather', 'strength', 'thr']) $(id).oninput = async () => {
+  if (id === 'mode') {
+    if ($('mode').value === 'lama' && !(await ensureLama())) $('mode').value = lastMode;
+    lastMode = $('mode').value;
+  }
   $('padv').textContent = $('pad').value + 'px'; $('featherv').textContent = $('feather').value + 'px'; $('thrv').textContent = $('thr').value;
   $('strl').hidden = !['blur','pixel'].includes($('mode').value); refresh();
 };

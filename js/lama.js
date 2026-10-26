@@ -15,7 +15,7 @@ const waiting = new Map();
 function call(msg, transfer = []) {
   if (!worker) {
     worker = new Worker(new URL('./lama-worker.js', import.meta.url));
-    worker.onmessage = ({ data }) => { if (data.progress !== undefined) return onProgress?.(data); const w = waiting.get(data.id); waiting.delete(data.id); data.ok ? w.resolve(data.out) : w.reject(new Error('No se pudo ejecutar LaMa (¿ejecutaste ./descargar-lama.sh?): ' + data.error)); };
+    worker.onmessage = ({ data }) => { if (data.progress !== undefined || data.phase) return onProgress?.(data); const w = waiting.get(data.id); waiting.delete(data.id); data.ok ? w.resolve(data.out) : w.reject(new Error('No se pudo ejecutar LaMa (¿ejecutaste ./descargar-lama.sh?): ' + data.error)); };
     worker.onerror = e => { for (const w of waiting.values()) w.reject(new Error('Error en el worker: ' + e.message)); waiting.clear(); worker = null; };
   }
   return new Promise((resolve, reject) => { const id = nextId++; waiting.set(id, { resolve, reject }); worker.postMessage({ ...msg, id }, transfer); });
@@ -23,6 +23,13 @@ function call(msg, transfer = []) {
 
 const S = 512;
 const win = document.createElement('canvas');
+
+// Descarga (si hace falta) y prepara el modelo sin procesar nada; onProgress({progress, got, total} | {phase:'init'})
+export async function lamaPreload(progress) {
+  onProgress = progress || null;
+  navigator.storage?.persist?.().catch(() => {});
+  await call({ type: 'load' });
+}
 
 export async function lamaHide(ctx, W, H, box, { pad, feather }, progress) {
   onProgress = progress || null;

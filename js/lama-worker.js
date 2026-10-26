@@ -29,7 +29,11 @@ async function modelBytes() {
 }
 self.onmessage = async ({ data }) => {
   try {
-    session ||= await ort.InferenceSession.create(await modelBytes(), { executionProviders: ['wasm'] });
+    if (!session) {
+      const bytes = await modelBytes();
+      self.postMessage({ phase: 'init' }); // descargado: queda preparar el modelo en memoria
+      session = await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] });
+    }
     if (data.type === 'load') return self.postMessage({ id: data.id, ok: true });
     const S = 512;
     const r = await session.run({ image: new ort.Tensor('float32', data.image, [1, 3, S, S]), mask: new ort.Tensor('float32', data.mask, [1, 1, S, S]) });

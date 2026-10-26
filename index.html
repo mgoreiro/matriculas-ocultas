@@ -63,6 +63,7 @@
   .check { display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--muted); margin:8px 0; }
   .hp { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
   #cmsg { min-height:20px; font-size:13px; } #cmsg.err { color:var(--danger); } #cmsg.ok { color:#1a9d5a; }
+  progress { width:100%; height:16px; accent-color:var(--accent); }
   kbd { font:12px ui-monospace,monospace; border:1px solid var(--line); border-radius:4px; padding:0 4px; }
 
   /* Táctil (iPad/iPhone): la foto no debe bloquear el scroll; para dibujar se activa «Dibujar caja» */
@@ -150,6 +151,33 @@
 <div id="sbar" hidden aria-hidden="true"><i></i></div>
 <footer class="copy">© Miguel González Oreiro</footer>
 
+
+<dialog id="dlgAI" aria-labelledby="aiT">
+  <form method="dialog">
+    <div class="dh"><h2 id="aiT">Descargar el modelo de IA</h2></div>
+    <div class="db">
+      <p>El modo <b>Inteligente (IA)</b> necesita un modelo de <b>198 MB</b> que se va a <b>descargar a este dispositivo</b>.</p>
+      <ul>
+        <li>Se guarda en tu navegador: <b>solo se descarga esta vez</b>.</li>
+        <li>No se envía ninguna foto: el modelo se ejecuta en tu equipo.</li>
+        <li>Si estás con datos móviles, conviene usar una red wifi.</li>
+      </ul>
+    </div>
+    <div class="df"><span></span><span><button value="cancel">Cancelar</button> <button value="ok" class="primary">Descargar y usar IA</button></span></div>
+  </form>
+</dialog>
+
+<dialog id="dlgDownload" aria-labelledby="dlT">
+  <div class="dh"><h2 id="dlT">Descargando IA</h2></div>
+  <div class="db">
+    <p id="dlText">Descargando el modelo de IA a tu dispositivo (solo esta vez). No cierres la página.</p>
+    <progress id="dlProg" max="100" value="0"></progress>
+    <p class="hint" id="dlPct">0 %</p>
+    <p id="dlErr" class="hint" style="color:var(--danger)"></p>
+  </div>
+  <div class="df"><span></span><button type="button" id="dlClose" hidden data-close>Cerrar</button></div>
+</dialog>
+
 <dialog id="dlgWelcome" aria-labelledby="wt">
   <div class="dh"><h2 id="wt">Bienvenido a Ocultar matrículas</h2><button class="x" data-close aria-label="Cerrar">×</button></div>
   <div class="db">
@@ -193,7 +221,7 @@
       <li><b>Margen</b> agranda un poco la zona (por si queda reborde de la matrícula) y <b>Difuminado</b> suaviza su borde.</li>
     </ul>
     <h3>5. El modo Inteligente (IA)</h3>
-    <p>La primera vez descarga un modelo de 198 MB; se guarda en el navegador y no se vuelve a descargar (el desplegable pasa a «instalado»). Si el navegador limpia sus datos de sitio, habría que descargarlo de nuevo.</p>
+    <p>Al elegirlo por primera vez, la app te <b>avisa</b> de que va a descargar a tu dispositivo un modelo de 198 MB y te pide confirmación; mientras se descarga aparece la ventana «Descargando IA» con una barra de progreso. El modelo se guarda en el navegador y no se vuelve a descargar (el desplegable pasa a «instalado»). Si cancelas, no se descarga nada y se mantiene el modo anterior. Si el navegador limpia sus datos de sitio, habría que descargarlo de nuevo.</p>
     <h3>6. Descargar</h3>
     <p>Elige JPG (con calidad ajustable) o PNG y pulsa «Descargar imagen». La resolución es la de la foto original. El archivo resultante no conserva los metadatos EXIF (ubicación, fecha…).</p>
     <h3>7. Problemas frecuentes</h3>
