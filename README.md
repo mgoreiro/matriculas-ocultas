@@ -15,7 +15,7 @@ Abre <http://localhost:8765>, arrastra una foto (o pulsa «Seleccionar archivo»
 
 ## Uso
 
-Al abrir la página aparece una ventana de bienvenida (con «No mostrar de nuevo», que se recuerda en el navegador); el botón **Ayuda** abre el manual de usuario completo y **Contactar** el formulario de contacto. **Limpiar** descarta los cambios y vuelve a empezar con la imagen actual; **Cargar nueva imagen** abre otra foto.
+Al abrir la página aparece una ventana de bienvenida (con «No mostrar de nuevo», que se recuerda en el navegador); el botón **Ayuda** abre el manual de usuario completo y **Contactar** el formulario de contacto. **Limpiar** descarta los cambios y vuelve a empezar con la imagen actual; **Nueva** abre otra foto.
 
 - **Detección automática** con el modelo elegido (*Rápido* 8 MB / *Preciso* 29 MB). «Buscar también por zonas» repite la detección sobre mosaicos ampliados para encontrar matrículas lejanas. El deslizador *Confianza mín.* filtra las detecciones dudosas.
 - **Ajuste manual**: clic en una caja para quitarla/ponerla (falsos positivos), o arrastra sobre la foto para dibujar una caja a mano. El panel inferior muestra cada matrícula con su recorte antes/después y botones para quitar o eliminar.
