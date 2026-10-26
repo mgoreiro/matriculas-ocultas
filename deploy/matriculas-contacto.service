@@ -1,0 +1,17 @@
+[Unit]
+Description=Ocultar matrículas - servicio de contacto
+After=network-online.target
+
+[Service]
+User=__USER__
+WorkingDirectory=/home/__USER__/matriculas-contacto
+EnvironmentFile=/etc/matriculas-contacto.env
+ExecStart=/usr/bin/python3 /home/__USER__/matriculas-contacto/contacto.py
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Matrículas ocultas</title>
+<meta name="description" content="Detecta y oculta matrículas en tus fotos, todo en tu navegador: la imagen no se envía a ningún servidor.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231f6feb'/%3E%3Crect x='8' y='22' width='48' height='20' rx='3' fill='%23fff'/%3E%3Crect x='8' y='22' width='7' height='20' rx='3' fill='%23003399'/%3E%3Cpath d='M12 54 52 10' stroke='%23d1342f' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>Ocultar matrículas</title>
 <style>
   :root { --bg:#f6f7f9; --fg:#1b1f24; --muted:#657080; --card:#fff; --line:#d9dde3; --accent:#1f6feb; --danger:#d1342f; color-scheme: light dark; }
   @media (prefers-color-scheme: dark) { :root { --bg:#14171b; --fg:#e8eaed; --muted:#9aa4b2; --card:#1d2126; --line:#333a43; --accent:#5b9bff; --danger:#ff6b66; } }
@@ -38,12 +40,44 @@
   .item button { padding:3px 9px; font-size:12px; }
   .del { color:var(--danger); }
   .hint { color:var(--muted); font-size:13px; }
+
+  main { padding-bottom: 64px; }
+  header.top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  header.top .actions { display:flex; gap:8px; }
+  footer.copy { position:fixed; left:0; bottom:0; padding:6px 12px; font-size:12px; color:var(--muted); background:color-mix(in srgb, var(--bg) 88%, transparent); border-top-right-radius:8px; }
+  footer.copy a { color:inherit; }
+  dialog { border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--fg); padding:0; width:min(680px, calc(100vw - 24px)); max-height:calc(100vh - 32px); box-shadow:0 20px 60px rgba(0,0,0,.35); }
+  dialog::backdrop { background:rgba(0,0,0,.5); }
+  dialog .dh { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--line); }
+  dialog .dh h2 { margin:0; font-size:18px; }
+  dialog .db { padding:6px 18px 14px; overflow:auto; max-height:calc(100vh - 190px); }
+  dialog .df { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 18px; border-top:1px solid var(--line); }
+  dialog h3 { font-size:15px; margin:18px 0 4px; }
+  dialog p, dialog li { color:var(--fg); margin:6px 0; }
+  dialog ol, dialog ul { padding-left:22px; }
+  dialog .x { padding:2px 10px; font-size:18px; line-height:1.2; }
+  .df label { display:flex; gap:8px; align-items:center; color:var(--muted); font-size:13px; }
+  .field { display:flex; flex-direction:column; gap:4px; margin:12px 0; font-size:13px; color:var(--muted); }
+  .field input[type=text], .field input[type=email], .field textarea { font:inherit; color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .field textarea { min-height:120px; resize:vertical; }
+  .check { display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--muted); margin:8px 0; }
+  .hp { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  #cmsg { min-height:20px; font-size:13px; } #cmsg.err { color:var(--danger); } #cmsg.ok { color:#1a9d5a; }
+  kbd { font:12px ui-monospace,monospace; border:1px solid var(--line); border-radius:4px; padding:0 4px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Matrículas ocultas</h1>
-  <p class="sub">Todo se procesa en tu navegador: la foto no se envía a ningún servidor.</p>
+  <header class="top">
+    <div>
+      <h1>Ocultar matrículas</h1>
+      <p class="sub">Todo se procesa en tu navegador: la foto no se envía a ningún servidor.</p>
+    </div>
+    <div class="actions">
+      <button id="btnHelp" type="button" title="Manual de usuario">❔ Ayuda</button>
+      <button id="btnContact" type="button" title="Enviarnos un comentario">✉ Contactar</button>
+    </div>
+  </header>
 
   <div id="warn" style="display:none;background:#d1342f;color:#fff;border-radius:8px;padding:10px 14px;margin-bottom:12px"></div>
   <div id="drop"><p><b>Arrastra una foto aquí</b></p><p class="hint">o</p><button class="primary" id="pick">Seleccionar archivo</button>
@@ -55,6 +89,8 @@
       <label><input type="checkbox" id="tiles" checked> Buscar también por zonas (matrículas lejanas)</label>
       <label>Confianza mín. <input type="range" id="thr" min="0.15" max="0.9" step="0.05" value="0.35"><span id="thrv">0.35</span></label>
       <button id="redetect">Detectar de nuevo</button>
+      <button id="clear" title="Descarta tus cambios manuales y ajustes y vuelve a empezar con esta imagen">Limpiar</button>
+      <button id="newimg">Cargar nueva imagen</button>
     </div>
     <div class="bar">
       <label>Ocultar con <select id="mode"><option value="fill">Relleno con carrocería cercana</option><option value="smooth">Relleno suave (difusión)</option><option value="lama">Inteligente (IA, LaMa · requiere descarga)</option><option value="color">Pintar del color de la carrocería</option><option value="white">Pintar de blanco</option><option value="blur">Desenfoque fuerte</option><option value="pixel">Pixelado</option></select></label>
@@ -73,13 +109,87 @@
       <label>Formato <select id="fmt"><option value="jpeg">JPG</option><option value="png">PNG</option></select></label>
       <label id="ql">Calidad <input type="range" id="quality" min="70" max="100" value="95"></label>
       <button class="primary" id="download">Descargar imagen</button>
-      <button id="another">Otra foto</button>
       <span class="hint" id="dims"></span>
     </div>
     <div id="list"></div>
   </section>
-  <p class="hint" style="margin-top:24px">Software libre (GPL-3.0) · <a href="https://github.com/mgoreiro/matriculas-ocultas" style="color:inherit">código fuente</a></p>
 </main>
+
+<footer class="copy">© Miguel González Oreiro · <a href="https://github.com/mgoreiro/matriculas-ocultas">código fuente (GPL-3.0)</a></footer>
+
+<dialog id="dlgWelcome" aria-labelledby="wt">
+  <div class="dh"><h2 id="wt">Bienvenido a Ocultar matrículas</h2><button class="x" data-close aria-label="Cerrar">×</button></div>
+  <div class="db">
+    <p>Oculta las matrículas de tus fotos en tres pasos, <b>sin que la imagen salga de tu equipo</b>:</p>
+    <ol>
+      <li><b>Arrastra una foto</b> a la página (o pulsa «Seleccionar archivo»). Las matrículas se detectan solas.</li>
+      <li><b>Revisa</b> las zonas marcadas en rosa: clic para quitar una, o arrastra sobre la foto para marcar otra que no se haya detectado.</li>
+      <li><b>Elige cómo ocultarlas</b> y pulsa «Descargar imagen». Se guarda con la misma resolución que el original.</li>
+    </ol>
+    <p>Consejo: el modo <i>Inteligente (IA)</i> da el resultado más natural; la primera vez descarga un modelo de 198 MB que se guarda en tu navegador.</p>
+  </div>
+  <div class="df">
+    <label><input type="checkbox" id="noMore"> No mostrar de nuevo</label>
+    <span><button type="button" data-manual>Ver el manual</button> <button type="button" class="primary" data-close>Empezar</button></span>
+  </div>
+</dialog>
+
+<dialog id="dlgHelp" aria-labelledby="ht">
+  <div class="dh"><h2 id="ht">Manual de usuario</h2><button class="x" data-close aria-label="Cerrar">×</button></div>
+  <div class="db">
+    <h3>1. Qué hace y qué privacidad ofrece</h3>
+    <p>Detecta matrículas de vehículos en una foto y las oculta. La detección y la ocultación se ejecutan <b>en tu navegador</b>: la foto no se sube a ningún servidor ni a terceros. Solo el formulario de contacto envía datos (lo que escribes en él).</p>
+    <h3>2. Cargar una foto</h3>
+    <p>Arrastra un archivo a la página o usa «Seleccionar archivo» (JPG, PNG, WebP…). Se respeta la orientación de la foto.</p>
+    <h3>3. Revisar las detecciones</h3>
+    <ul>
+      <li>Cada matrícula se marca con un cuadrilátero rosa que sigue su borde real (también en perspectiva). Solo esa zona se modifica.</li>
+      <li><b>Quitar un falso positivo:</b> clic sobre la marca (o «Quitar» / ✕ en la lista inferior). Un clic más la reactiva.</li>
+      <li><b>Añadir una matrícula no detectada</b> (lejana, muy inclinada…): arrastra sobre la foto original para dibujar una caja alrededor.</li>
+      <li><b>Confianza mín.</b> oculta detecciones dudosas; <b>Modelo</b> «Preciso» es más lento pero acierta más; <b>Buscar por zonas</b> ayuda con matrículas pequeñas.</li>
+      <li><b>Ajustar a la silueta</b> recorta la zona al borde exacto de la matrícula. Si la matrícula no contrasta con el coche (blanca sobre blanco), se usa la caja del detector.</li>
+    </ul>
+    <h3>4. Cómo ocultarlas</h3>
+    <ul>
+      <li><b>Inteligente (IA):</b> reconstruye la carrocería con un modelo de inpainting; es el más discreto. Tarda unos 15 s por matrícula, sin bloquear la página.</li>
+      <li><b>Relleno con carrocería cercana:</b> copia un trozo liso y parecido de la propia foto. Rápido y casi siempre discreto.</li>
+      <li><b>Relleno suave:</b> difumina los colores del borde hacia dentro. Útil sobre superficies muy uniformes.</li>
+      <li><b>Color de la carrocería / Blanco:</b> rellenan con un color plano.</li>
+      <li><b>Desenfoque</b> y <b>Pixelado</b>: más evidentes pero muy fiables; ajusta la <i>Intensidad</i>.</li>
+      <li><b>Margen</b> agranda un poco la zona (por si queda reborde de la matrícula) y <b>Difuminado</b> suaviza su borde.</li>
+    </ul>
+    <h3>5. El modo Inteligente (IA)</h3>
+    <p>La primera vez descarga un modelo de 198 MB; se guarda en el navegador y no se vuelve a descargar (el desplegable pasa a «instalado»). Si el navegador limpia sus datos de sitio, habría que descargarlo de nuevo.</p>
+    <h3>6. Descargar</h3>
+    <p>Elige JPG (con calidad ajustable) o PNG y pulsa «Descargar imagen». La resolución es la de la foto original. El archivo resultante no conserva los metadatos EXIF (ubicación, fecha…).</p>
+    <h3>7. Problemas frecuentes</h3>
+    <ul>
+      <li><b>No detecta una matrícula:</b> prueba el modelo «Preciso», activa «Buscar por zonas», baja «Confianza mín.» o dibújala a mano.</li>
+      <li><b>Se nota el relleno:</b> prueba el modo Inteligente, o sube un poco el margen.</li>
+      <li><b>La página no carga:</b> debe abrirse desde la dirección web de la app, no como archivo local.</li>
+    </ul>
+    <h3>8. Contacto</h3>
+    <p>¿Dudas o sugerencias? Usa el botón «Contactar». Esta aplicación es software libre (GPL-3.0) de Miguel González Oreiro.</p>
+    <p><a href="#" id="showWelcomeAgain">Volver a mostrar la ayuda de inicio al abrir la página</a></p>
+  </div>
+  <div class="df"><span></span><button type="button" class="primary" data-close>Cerrar</button></div>
+</dialog>
+
+<dialog id="dlgContact" aria-labelledby="ct">
+  <form id="fContact" novalidate>
+    <div class="dh"><h2 id="ct">Contactar</h2><button class="x" type="button" data-close aria-label="Cerrar">×</button></div>
+    <div class="db">
+      <p class="hint">Cuéntanos tu duda, sugerencia o problema. Recibiremos tu mensaje por correo.</p>
+      <label class="field">Tu nombre<input type="text" id="cName" maxlength="100" autocomplete="name" required></label>
+      <label class="field">Tu correo de contacto<input type="email" id="cEmail" maxlength="254" autocomplete="email" required></label>
+      <label class="field">Mensaje<textarea id="cText" maxlength="5000" required></textarea></label>
+      <div class="hp" aria-hidden="true"><label>No rellenar<input type="text" id="cWeb" tabindex="-1" autocomplete="off"></label></div>
+      <label class="check"><input type="checkbox" id="cConsent"> <span>Acepto que se use mi nombre y correo únicamente para responder a este mensaje.</span></label>
+      <div id="cmsg" role="status"></div>
+    </div>
+    <div class="df"><span></span><span><button type="button" data-close>Cancelar</button> <button type="submit" class="primary" id="cSend">Enviar</button></span></div>
+  </form>
+</dialog>
 <script>
   // Evita que el navegador abra la foto si la app no cargó, y explica por qué.
   addEventListener('dragover', e => e.preventDefault());
@@ -91,5 +201,6 @@
 </script>
 <script src="vendor/ort.wasm.min.js"></script>
 <script type="module" src="js/app.js"></script>
+<script type="module" src="js/ui.js"></script>
 </body>
 </html>

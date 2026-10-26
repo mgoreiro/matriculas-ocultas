@@ -166,8 +166,16 @@ $('download').onclick = () => {
 const drop = $('drop');
 $('pick').onclick = e => { e.stopPropagation(); $('file').click(); };
 drop.onclick = () => $('file').click();
-$('file').onchange = e => loadFile(e.target.files[0]);
-$('another').onclick = () => { $('work').style.display = 'none'; drop.style.display = ''; $('file').value = ''; };
+$('file').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; await loadFile(f); };
+$('newimg').onclick = () => $('file').click();
+$('clear').onclick = async () => { // vuelve a empezar con la imagen actual: ajustes por defecto, sin cajas manuales
+  const defaults = { mode: 'fill', pad: 3, feather: 2, strength: 6, thr: 0.35 };
+  for (const [id, v] of Object.entries(defaults)) $(id).value = v;
+  $('fit').checked = true; $('tiles').checked = true;
+  $('mode').dispatchEvent(new Event('input')); // refresca etiquetas
+  boxes = [];
+  await runDetect();
+};
 for (const t of ['dragenter', 'dragover']) addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); });
 for (const t of ['dragleave', 'drop']) addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); });
 addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));

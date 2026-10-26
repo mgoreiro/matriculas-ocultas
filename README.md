@@ -1,4 +1,4 @@
-# Matrículas ocultas
+# Ocultar matrículas
 
 Arrastra una foto, la app detecta las matrículas de los vehículos y las oculta, y descargas el resultado a la misma resolución.
 **Todo ocurre en tu navegador**: la foto nunca sale de tu equipo (el servidor local solo sirve los ficheros estáticos de la app).
@@ -14,6 +14,8 @@ Requisito: Python 3 (solo para servir los ficheros; no se instala nada).
 Abre <http://localhost:8765>, arrastra una foto (o pulsa «Seleccionar archivo») y listo. Funciona sin conexión: modelos y runtime ya están en `models/` y `vendor/`.
 
 ## Uso
+
+Al abrir la página aparece una ventana de bienvenida (con «No mostrar de nuevo», que se recuerda en el navegador); el botón **Ayuda** abre el manual de usuario completo y **Contactar** el formulario de contacto. **Limpiar** descarta los cambios y vuelve a empezar con la imagen actual; **Cargar nueva imagen** abre otra foto.
 
 - **Detección automática** con el modelo elegido (*Rápido* 8 MB / *Preciso* 29 MB). «Buscar también por zonas» repite la detección sobre mosaicos ampliados para encontrar matrículas lejanas. El deslizador *Confianza mín.* filtra las detecciones dudosas.
 - **Ajuste manual**: clic en una caja para quitarla/ponerla (falsos positivos), o arrastra sobre la foto para dibujar una caja a mano. El panel inferior muestra cada matrícula con su recorte antes/después y botones para quitar o eliminar.
@@ -64,5 +66,7 @@ La app es 100 % estática, así que basta con servir la carpeta; no necesita Nod
 1. Una vez: `./deploy/preparar-servidor.sh usuario@midominio.com` (crea la carpeta y copia el fragmento de nginx; pide tu contraseña).
 2. Desde tu equipo: `./deploy/deploy.sh usuario@midominio.com --lama` (sube solo lo que usa el navegador, ~20 MB; con `--lama` el servidor descarga él mismo el modelo de IA de 198 MB).
 3. Añade `include snippets/matriculas.conf;` dentro del `server { }` con TLS y recarga nginx (`sudo nginx -t && sudo systemctl reload nginx`). Queda en `https://midominio.com/matriculas/`.
+
+**Formulario de contacto.** Los mensajes los envía `server/contacto.py` (solo biblioteca estándar de Python 3, escucha en 127.0.0.1:8770 detrás de nginx). `preparar-servidor.sh` lo instala como servicio systemd `matriculas-contacto` y crea `/etc/matriculas-contacto.env` a partir de `.env.example`: pon ahí `CONTACT_TO` (destinatario), los datos SMTP y `FROM_MODE` (`user`: el remitente es el correo que escribe el visitante, con Reply-To igual; `server`: remitente propio, mejor entregabilidad porque con SPF/DMARC muchos servidores rechazan un From que no es de tu dominio). El asunto es «Comentario sobre app matrículas de <nombre>». Protecciones: campo trampa anti-bots, límite de 5 mensajes/hora por IP, validación y saneado de cabeceras. En local, `./serve.py` atiende `/api/contacto` con la misma lógica (crea un `.env` con `CONTACT_TO=…` y `MAIL_DRY_RUN=1` para probar sin enviar).
 
 El fragmento sirve `.wasm`/`.mjs` con el tipo correcto, activa gzip y caché, y añade una CSP que impide a la página conectar con otros orígenes. `./serve.py` envía esa misma CSP, de modo que lo que pruebas en local es lo que se publica. Si no quieres que sea pública, descomenta el bloque `auth_basic` del fragmento.

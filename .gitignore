@@ -1,3 +1,5 @@
 .DS_Store
 test/
 models/lama_fp32.onnx
+.env
+__pycache__/
