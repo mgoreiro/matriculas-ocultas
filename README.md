@@ -153,7 +153,7 @@ Probar en local sin enviar: crea `.env` con `CONTACT_TO=tu@correo` y `MAIL_DRY_R
 ## Estructura del proyecto y licencias
 
 ```
-index.html              interfaz (bienvenida, manual, contacto)
+index.html              interfaz (bienvenida, manual con licencia y enlace al repositorio, contacto)
 js/app.js               carga, cajas, render, descarga
 js/ui.js                bienvenida, manual y formulario de contacto
 js/detect.js            detección ONNX, mosaicos, NMS
