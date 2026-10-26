@@ -41,3 +41,26 @@ $('fContact').addEventListener('submit', async e => {
   } catch (err) { msg(err.message, 'err'); }
   $('cSend').disabled = false;
 });
+
+// Barra de desplazamiento visible y arrastrable (solo táctil; la de iOS se oculta sola)
+(() => {
+  const bar = $('sbar'), thumb = bar.firstElementChild;
+  if (!matchMedia('(pointer: coarse)').matches) return;
+  let drag = null;
+  const m = () => { const h = innerHeight, H = document.documentElement.scrollHeight, th = Math.max(56, h * h / H); return { h, H, th, max: h - th }; };
+  function update() {
+    const { h, H, th, max } = m();
+    bar.hidden = H <= h + 4;
+    thumb.style.height = th + 'px';
+    thumb.style.transform = `translateY(${H > h ? scrollY / (H - h) * max : 0}px)`;
+  }
+  const to = y => { const { h, H, th, max } = m(); scrollTo(0, Math.min(Math.max((y - th / 2) / max, 0), 1) * (H - h)); };
+  bar.addEventListener('pointerdown', e => { bar.setPointerCapture(e.pointerId); drag = true; to(e.clientY); });
+  bar.addEventListener('pointermove', e => { if (drag) to(e.clientY); });
+  bar.addEventListener('pointerup', () => { drag = null; });
+  bar.addEventListener('pointercancel', () => { drag = null; });
+  addEventListener('scroll', update, { passive: true });
+  addEventListener('resize', update);
+  new ResizeObserver(update).observe(document.body);
+  update();
+})();

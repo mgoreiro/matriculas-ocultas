@@ -25,9 +25,9 @@
   .views { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   @media (max-width:800px) { .views { grid-template-columns:1fr; } }
   .view h2 { font-size:13px; font-weight:600; color:var(--muted); margin:0 0 6px; text-transform:uppercase; letter-spacing:.04em; }
-  .stage { position:relative; line-height:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#000; touch-action:none; user-select:none; }
+  .stage { position:relative; line-height:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#000; user-select:none; }
   .stage canvas { width:100%; height:auto; display:block; }
-  #overlay { position:absolute; inset:0; cursor:crosshair; }
+  #overlay { position:absolute; inset:0; cursor:crosshair; touch-action:none; }
   .box { position:absolute; border:2px solid #22d36b; background:rgba(34,211,107,.08); }
   .box.fit { border:0; background:none; } /* la zona real es el cuadrilátero rosa */
   .box.off { border:2px dashed #aaa; background:rgba(150,150,150,.12); }
@@ -64,6 +64,37 @@
   .hp { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
   #cmsg { min-height:20px; font-size:13px; } #cmsg.err { color:var(--danger); } #cmsg.ok { color:#1a9d5a; }
   kbd { font:12px ui-monospace,monospace; border:1px solid var(--line); border-radius:4px; padding:0 4px; }
+
+  /* Táctil (iPad/iPhone): la foto no debe bloquear el scroll; para dibujar se activa «Dibujar caja» */
+  #drawToggle { display:none; }
+  #drawToggle.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  @media (pointer:coarse) {
+    #overlay { touch-action:pan-y pinch-zoom; cursor:default; }
+    body.drawmode #overlay { touch-action:none; }
+    #drawToggle { display:inline-block; }
+    button, select { min-height:42px; padding:9px 16px; }
+    .bar { gap:12px 18px; }
+    .bar input[type=range] { width:150px; height:28px; }
+    .bar input[type=checkbox], .check input, .df input[type=checkbox] { width:22px; height:22px; }
+    footer.copy { padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
+  }
+  select { max-width:100%; }
+  /* iOS hace zoom al enfocar campos con letra < 16 px */
+  input[type=text], input[type=email], textarea, select { font-size:16px !important; }
+  @media (max-width:640px) {
+    main { padding:12px 12px 64px; }
+    h1 { font-size:20px; }
+    header.top .actions { width:100%; } header.top .actions button { flex:1; }
+    .bar { padding:10px 12px; gap:10px 14px; }
+    .bar label { flex-wrap:wrap; max-width:100%; }
+    .bar label select { max-width:100%; min-width:0; flex:1; }
+    #list { grid-template-columns:1fr; }
+    #drop { padding:36px 12px; }
+  }
+  /* Barra de desplazamiento propia, siempre visible en pantallas táctiles (iOS oculta la nativa) */
+  #sbar { display:none; position:fixed; top:0; right:0; bottom:0; width:18px; z-index:50; touch-action:none; background:color-mix(in srgb, var(--fg) 8%, transparent); }
+  #sbar i { position:absolute; left:3px; right:3px; top:0; border-radius:8px; background:color-mix(in srgb, var(--accent) 85%, transparent); box-shadow:0 0 0 1px rgba(0,0,0,.25); }
+  @media (pointer:coarse) { #sbar { display:block; } #sbar[hidden] { display:none; } main { padding-right:26px; } }
 </style>
 </head>
 <body>
@@ -99,7 +130,7 @@
       <label><input type="checkbox" id="fit" checked> Ajustar a la silueta de la matrícula</label>
       <label id="strl" hidden>Intensidad <input type="range" id="strength" min="1" max="10" value="6"></label>
     </div>
-    <p class="hint" style="margin:0 0 8px">Clic en una zona rosa para quitarla o ponerla · arrastra sobre la foto original para marcar una nueva.</p>
+    <p class="hint" style="margin:0 0 8px" id="viewhint">Clic en una zona rosa para quitarla o ponerla · arrastra sobre la foto original para marcar una nueva. <button id="drawToggle" type="button" aria-pressed="false">✏ Dibujar caja</button></p>
     <div class="views">
       <div class="view"><h2>Original</h2>
         <div class="stage" id="stageA"><div id="overlay"></div></div></div>
@@ -116,6 +147,7 @@
   </section>
 </main>
 
+<div id="sbar" hidden aria-hidden="true"><i></i></div>
 <footer class="copy">© Miguel González Oreiro</footer>
 
 <dialog id="dlgWelcome" aria-labelledby="wt">
@@ -146,7 +178,7 @@
     <ul>
       <li>Cada matrícula se marca con un cuadrilátero rosa que sigue su borde real (también en perspectiva). Solo esa zona se modifica.</li>
       <li><b>Quitar un falso positivo:</b> clic sobre la marca (o «Quitar» / ✕ en la lista inferior). Un clic más la reactiva.</li>
-      <li><b>Añadir una matrícula no detectada</b> (lejana, muy inclinada…): arrastra sobre la foto original para dibujar una caja alrededor.</li>
+      <li><b>Añadir una matrícula no detectada</b> (lejana, muy inclinada…): arrastra sobre la foto original para dibujar una caja alrededor. En <b>iPad/iPhone</b> pulsa antes «Dibujar caja» (así las fotos no bloquean el desplazamiento); al terminar la caja vuelve el modo normal.</li>
       <li><b>ReDetectar</b> repite la detección con los ajustes actuales; <b>Limpiar</b> descarta tus cambios y ajustes y vuelve a empezar con la misma imagen.</li>
       <li><b>Confianza mín.</b> oculta detecciones dudosas; <b>Modelo</b> «Preciso» es más lento pero acierta más; <b>Buscar por zonas</b> ayuda con matrículas pequeñas.</li>
       <li><b>Ajustar a la silueta</b> recorta la zona al borde exacto de la matrícula. Si la matrícula no contrasta con el coche (blanca sobre blanco), se usa la caja del detector.</li>
@@ -166,6 +198,7 @@
     <p>Elige JPG (con calidad ajustable) o PNG y pulsa «Descargar imagen». La resolución es la de la foto original. El archivo resultante no conserva los metadatos EXIF (ubicación, fecha…).</p>
     <h3>7. Problemas frecuentes</h3>
     <ul>
+      <li><b>En tablet/móvil:</b> puedes desplazarte tocando cualquier parte de la foto; hay una barra de desplazamiento visible en el lateral derecho que también se puede arrastrar.</li>
       <li><b>No detecta una matrícula:</b> prueba el modelo «Preciso», activa «Buscar por zonas», baja «Confianza mín.» o dibújala a mano.</li>
       <li><b>Se nota el relleno:</b> prueba el modo Inteligente, o sube un poco el margen.</li>
       <li><b>La página no carga:</b> debe abrirse desde la dirección web de la app, no como archivo local.</li>

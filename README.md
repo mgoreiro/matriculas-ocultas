@@ -47,6 +47,7 @@ Barra superior de controles:
 Revisión de resultados:
 
 - Cada matrícula se marca con un **cuadrilátero rosa** que sigue su borde real (también en perspectiva); solo esa zona se modifica.
+- En pantallas táctiles (iPad/iPhone) las fotos no bloquean el scroll: hay una **barra de desplazamiento propia, siempre visible, en el lateral derecho** (arrastrable) y para dibujar una caja se pulsa antes **«Dibujar caja»**.
 - **Clic** sobre una zona la quita o la pone (falsos positivos); **arrastrar** sobre la foto original dibuja una caja para una matrícula no detectada. El panel inferior muestra cada matrícula con su recorte antes/después, y botones para quitarla o eliminarla.
 - *Ajustar a la silueta de la matrícula* (activado por defecto) recorta la zona al borde exacto; si no hay contraste fiable (matrícula blanca sobre coche blanco) se usa la caja del detector.
 

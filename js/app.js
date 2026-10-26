@@ -126,7 +126,7 @@ function drawList() {
 
 // ---------- dibujar / activar cajas ----------
 (() => {
-  const ov = $('overlay'); let start = null, draft = null;
+  const ov = $('overlay'); let start = null, draft = null, boxesAdded = false;
   const pos = e => { const r = ov.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
   ov.addEventListener('pointerdown', e => { ov.setPointerCapture(e.pointerId); start = pos(e); start.cx = e.clientX; start.cy = e.clientY; });
   ov.addEventListener('pointermove', e => {
@@ -136,19 +136,32 @@ function drawList() {
     const b = { x, y, w: Math.min(W, Math.max(start.x, p.x)) - x, h: Math.min(H, Math.max(start.y, p.y)) - y };
     draft?.remove(); draft = boxEl(b, 'draft'); draft.dataset.b = JSON.stringify(b); ov.append(draft);
   });
+  ov.addEventListener('pointercancel', () => { start = null; draft?.remove(); draft = null; }); // el navegador tomó el gesto (scroll)
   ov.addEventListener('pointerup', e => {
     if (!start) return;
+    boxesAdded = false;
     if (draft) {
       const b = JSON.parse(draft.dataset.b);
-      if (b.w > 4 && b.h > 4) { const nb = { ...b, id: nextId++, on: true, manual: true, score: 1 }; fitBox(nb); boxes.push(nb); }
+      if (b.w > 4 && b.h > 4) { boxesAdded = true; const nb = { ...b, id: nextId++, on: true, manual: true, score: 1 }; fitBox(nb); boxes.push(nb); }
     } else { // clic: activar/desactivar caja bajo el cursor
       const p = pos(e), hit = boxes.filter(b => (b.manual || b.score >= +$('thr').value) && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h)
         .sort((a, b) => a.w * a.h - b.w * b.h)[0];
       if (hit) hit.on = !hit.on;
     }
     draft = null; start = null; refresh();
+    if (boxesAdded) setDraw(false);
   });
 })();
+
+// ---------- modo dibujo en pantallas táctiles ----------
+const coarse = matchMedia('(pointer: coarse)').matches;
+function setDraw(on) {
+  document.body.classList.toggle('drawmode', on);
+  $('drawToggle').classList.toggle('on', on); $('drawToggle').setAttribute('aria-pressed', on);
+  $('drawToggle').textContent = on ? '✏ Dibujando: arrastra sobre la foto' : '✏ Dibujar caja';
+}
+if (coarse) $('viewhint').firstChild.textContent = 'Toca una zona rosa para quitarla o ponerla · pulsa «Dibujar caja» y arrastra sobre la foto original para marcar una nueva. ';
+$('drawToggle').onclick = () => setDraw(!document.body.classList.contains('drawmode'));
 
 // ---------- descarga ----------
 function syncFmt() { $('ql').style.display = $('fmt').value === 'jpeg' ? '' : 'none'; }
