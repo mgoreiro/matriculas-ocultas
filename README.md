@@ -56,3 +56,13 @@ Revisa las licencias de los modelos en su repositorio si vas a redistribuirlos.
 **Licencia:** GPL-3.0 (ver `LICENSE` y `NOTICE.md`).
 
 `index.html` (UI) · `js/app.js` (interfaz y cajas) · `js/detect.js` (ONNX, mosaicos, NMS) · `js/lama.js` + `js/lama-worker.js` (IA) · `js/refine.js` (silueta) · `js/inpaint.js` (ocultación) · `serve.py`
+
+## Publicar en un servidor propio (nginx)
+
+La app es 100 % estática, así que basta con servir la carpeta; no necesita Node, Python ni Docker en el servidor.
+
+1. En el servidor, una vez: `sudo mkdir -p /var/www/matriculas-ocultas && sudo chown "$USER" /var/www/matriculas-ocultas`.
+2. Desde tu equipo: `./deploy/deploy.sh usuario@midominio.com --lama` (sube solo lo que usa el navegador, ~20 MB; con `--lama` el servidor descarga él mismo el modelo de IA de 198 MB).
+3. Copia `deploy/nginx-matriculas.conf` a `/etc/nginx/snippets/matriculas.conf`, añade `include snippets/matriculas.conf;` dentro del `server { }` con TLS y recarga nginx. Queda en `https://midominio.com/matriculas/`.
+
+El fragmento sirve `.wasm`/`.mjs` con el tipo correcto, activa gzip y caché, y añade una CSP que impide a la página conectar con otros orígenes. `./serve.py` envía esa misma CSP, de modo que lo que pruebas en local es lo que se publica. Si no quieres que sea pública, descomenta el bloque `auth_basic` del fragmento.
